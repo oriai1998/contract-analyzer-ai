@@ -24,13 +24,14 @@ import anthropic
 import streamlit as st
 from dotenv import load_dotenv
 
-# טוען API key: קודם מ-.env (לוקאלי), ואם אין - מ-Streamlit Secrets (cloud)
+# טוען API key + סיסמת אפליקציה: קודם מ-.env (לוקאלי), ואם אין - מ-Streamlit Secrets (cloud)
 load_dotenv()
-if "ANTHROPIC_API_KEY" not in os.environ:
-    try:
-        os.environ["ANTHROPIC_API_KEY"] = st.secrets["ANTHROPIC_API_KEY"]
-    except (KeyError, FileNotFoundError):
-        pass  # תיתפס בהמשך כשננסה ליצור client
+for secret_name in ("ANTHROPIC_API_KEY", "APP_PASSWORD"):
+    if secret_name not in os.environ:
+        try:
+            os.environ[secret_name] = st.secrets[secret_name]
+        except (KeyError, FileNotFoundError):
+            pass  # תיתפס בהמשך
 
 # ============================================================
 # הגדרת הדף + RTL
@@ -57,6 +58,65 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+
+
+# ============================================================
+# 🔐 שער כניסה - סיסמה
+# ============================================================
+
+def require_password() -> None:
+    """מציג מסך כניסה. אם הסיסמה נכונה - ממשיכים. אחרת - עוצרים."""
+    if "authenticated" not in st.session_state:
+        st.session_state.authenticated = False
+
+    if st.session_state.authenticated:
+        return  # כבר מחובר - ממשיכים לאפליקציה
+
+    expected = os.getenv("APP_PASSWORD", "")
+
+    if not expected:
+        st.error(
+            "⚠️ האפליקציה לא הוגדרה כראוי. חסר משתנה `APP_PASSWORD` "
+            "בקובץ `.env` המקומי או ב-Streamlit Secrets."
+        )
+        st.stop()
+
+    # מסך כניסה
+    st.title("🔐 כניסה למערכת")
+    st.markdown(
+        "**מערכת ניתוח מסמכים פרטית** — נא להזין סיסמה כדי להמשיך.\n\n"
+        "אם אין לך סיסמה, פנה למפתח האפליקציה."
+    )
+
+    with st.form("login_form", clear_on_submit=False):
+        password_input = st.text_input(
+            "סיסמה",
+            type="password",
+            placeholder="הקלד את הסיסמה כאן...",
+        )
+        submitted = st.form_submit_button(
+            "🔓 היכנס",
+            type="primary",
+            use_container_width=True,
+        )
+
+        if submitted:
+            if password_input == expected:
+                st.session_state.authenticated = True
+                st.rerun()
+            else:
+                st.error("❌ סיסמה שגויה. נסה שוב.")
+
+    st.caption(
+        "💡 טיפ: לאחר כניסה, תוכל לסגור את הדפדפן ולחזור - "
+        "תצטרך להיכנס שוב כי הסשן מתאפס."
+    )
+
+    st.stop()  # לא מציג את שאר האפליקציה עד כניסה
+
+
+# הפעלת שער הכניסה - חייב להיות לפני כל תוכן אחר
+require_password()
 
 
 # ============================================================
