@@ -10,6 +10,7 @@ Agent #1 — ממשק Web (גרסה משופרת)
     streamlit run agent1_web.py
 """
 
+import os
 from datetime import datetime
 from pathlib import Path
 
@@ -17,7 +18,13 @@ import anthropic
 import streamlit as st
 from dotenv import load_dotenv
 
+# טוען API key: קודם מ-.env (לוקאלי), ואם אין - מ-Streamlit Secrets (cloud)
 load_dotenv()
+if "ANTHROPIC_API_KEY" not in os.environ:
+    try:
+        os.environ["ANTHROPIC_API_KEY"] = st.secrets["ANTHROPIC_API_KEY"]
+    except (KeyError, FileNotFoundError):
+        pass
 
 # ============================================================
 # הגדרות הדף + RTL

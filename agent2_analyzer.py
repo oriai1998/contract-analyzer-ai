@@ -16,6 +16,7 @@ Agent #2 — מנתח ומשווה מסמכים רב-תחומי (גרסה 3)
 """
 
 import base64
+import os
 from datetime import datetime
 from pathlib import Path
 
@@ -23,7 +24,13 @@ import anthropic
 import streamlit as st
 from dotenv import load_dotenv
 
+# טוען API key: קודם מ-.env (לוקאלי), ואם אין - מ-Streamlit Secrets (cloud)
 load_dotenv()
+if "ANTHROPIC_API_KEY" not in os.environ:
+    try:
+        os.environ["ANTHROPIC_API_KEY"] = st.secrets["ANTHROPIC_API_KEY"]
+    except (KeyError, FileNotFoundError):
+        pass  # תיתפס בהמשך כשננסה ליצור client
 
 # ============================================================
 # הגדרת הדף + RTL
