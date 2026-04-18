@@ -41,7 +41,7 @@ OUTPUT_DIR = BASE_DIR / "output"
 
 PLACES_SEARCH_URL = "https://places.googleapis.com/v1/places:searchText"
 PLACES_FIELD_MASK = (
-    "places.displayName,places.formattedAddress,"
+    "places.id,places.displayName,places.formattedAddress,"
     "places.nationalPhoneNumber,places.internationalPhoneNumber,"
     "places.websiteUri,places.rating,places.userRatingCount,"
     "places.primaryTypeDisplayName,places.businessStatus"
@@ -49,6 +49,9 @@ PLACES_FIELD_MASK = (
 
 FETCH_TIMEOUT = 5
 MAX_HTML_CHARS = 4000
+
+SEEN_LEADS_FILE = BASE_DIR / "output" / "seen_leads.json"
+MAX_FETCH_FOR_DEDUP = 20  # max per Places API request
 
 
 def load_prompt(name: str) -> str:
@@ -77,6 +80,7 @@ def search_businesses(business_type: str, location: str, count: int) -> list[dic
 
 def normalize_place(p: dict) -> dict:
     return {
+        "place_id": p.get("id", ""),
         "name": p.get("displayName", {}).get("text", ""),
         "category": p.get("primaryTypeDisplayName", {}).get("text", ""),
         "address": p.get("formattedAddress", ""),
@@ -86,6 +90,49 @@ def normalize_place(p: dict) -> dict:
         "review_count": p.get("userRatingCount", 0),
         "business_status": p.get("businessStatus", ""),
     }
+
+
+def load_seen_leads() -> set[str]:
+    if not SEEN_LEADS_FILE.exists():
+        return set()
+    try:
+        data = json.loads(SEEN_LEADS_FILE.read_text(encoding="utf-8"))
+        return set(data.get("place_ids", []))
+    except (json.JSONDecodeError, OSError):
+        return set()
+
+
+def save_seen_leads(place_ids: set[str]) -> None:
+    SEEN_LEADS_FILE.parent.mkdir(exist_ok=True)
+    payload = {"place_ids": sorted(place_ids), "updated_at": datetime.now().isoformat()}
+    SEEN_LEADS_FILE.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def reset_seen_leads() -> None:
+    if SEEN_LEADS_FILE.exists():
+        SEEN_LEADS_FILE.unlink()
+
+
+def filter_seen(businesses: list[dict], seen: set[str]) -> tuple[list[dict], int]:
+    """Return (unseen businesses, count of filtered-out businesses)."""
+    unseen = [b for b in businesses if b.get("place_id") and b["place_id"] not in seen]
+    filtered_count = len(businesses) - len(unseen)
+    return unseen, filtered_count
+
+
+def search_with_dedup(
+    business_type: str,
+    location: str,
+    count: int,
+    seen: set[str],
+) -> tuple[list[dict], int]:
+    """Search for `count` NEW businesses, filtering out ones already seen.
+
+    Returns (new businesses up to count, total filtered out).
+    """
+    raw = search_businesses(business_type, location, MAX_FETCH_FOR_DEDUP)
+    unseen, filtered = filter_seen(raw, seen)
+    return unseen[:count], filtered
 
 
 def fetch_website(url: str) -> str | None:
@@ -222,18 +269,28 @@ def main() -> None:
     validate_env()
     business_type, location, count = prompt_user()
 
-    print(f"\n🔎 מחפש '{business_type}' ב{location or 'ישראל'}, עד {count} עסקים...")
+    seen = load_seen_leads()
+    print(f"\n🔎 מחפש '{business_type}' ב{location or 'ישראל'}, עד {count} עסקים חדשים...")
+    if seen:
+        print(f"   (זיכרון: {len(seen)} עסקים שכבר נתקלנו בהם יוסננו)")
+
     try:
-        businesses = search_businesses(business_type, location, count)
+        businesses, filtered = search_with_dedup(business_type, location, count, seen)
     except RuntimeError as e:
         print(f"❌ שגיאה בחיפוש: {e}")
         sys.exit(1)
 
     if not businesses:
-        print("❌ לא נמצאו עסקים. נסה חיפוש אחר או אזור רחב יותר.")
+        if filtered > 0:
+            print(f"❌ כל {filtered} התוצאות שנמצאו כבר היו בזיכרון. נסה חיפוש אחר.")
+        else:
+            print("❌ לא נמצאו עסקים. נסה חיפוש אחר או אזור רחב יותר.")
         sys.exit(0)
 
-    print(f"✓ נמצאו {len(businesses)} עסקים. מתחיל ניתוח...\n")
+    msg = f"✓ נמצאו {len(businesses)} עסקים חדשים"
+    if filtered:
+        msg += f" ({filtered} נוספים כבר היו בזיכרון)"
+    print(msg + ". מתחיל ניתוח...\n")
 
     client = Anthropic(api_key=ANTHROPIC_KEY)
     results = []
@@ -267,9 +324,15 @@ def main() -> None:
 
     results.sort(key=lambda r: r.get("score", 0) or 0, reverse=True)
     path = save_to_csv(results, business_type)
+
+    # update memory of seen leads
+    seen.update(b["place_id"] for b in businesses if b.get("place_id"))
+    save_seen_leads(seen)
+
     print(f"\n✅ הסתיים. נשמר: {path}")
     print(f"   סה\"כ {len(results)} עסקים. ציון ממוצע: "
           f"{sum(r.get('score', 0) or 0 for r in results) / len(results):.1f}")
+    print(f"   זיכרון: {len(seen)} עסקים סה\"כ יוסננו בפעם הבאה")
 
 
 if __name__ == "__main__":
