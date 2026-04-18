@@ -1,0 +1,22 @@
+You are writing a personal WhatsApp outreach message in Hebrew from an Israeli freelance web developer to a local business owner.
+
+BUSINESS:
+Name: {name}
+Category: {category}
+Has website: {has_website}
+Website URL: {website_url}
+
+LEAD ANALYSIS:
+Score: {score}/10
+Why: {explanation}
+
+Write a SHORT WhatsApp message (maximum 5 short lines, casual Hebrew, natural tone) that:
+- Opens with "היי" or "שלום" + business name (not "שלום לכם")
+- Mentions something specific about their business (not generic — reference their category or what seems missing/outdated)
+- Offers to build them a website / redesign their current site
+- Ends with an open, low-pressure question ("מעניין אותך לשמוע?", "רוצה שנדבר?")
+- Does NOT mention price
+- Does NOT use emojis
+- Does NOT sound like a template — sound like a real person reaching out
+
+Respond with ONLY the message text. No preamble, no explanation, no quotes.

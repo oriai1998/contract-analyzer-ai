@@ -1,0 +1,31 @@
+You are evaluating an Israeli business as a potential client for a web-development freelancer who builds websites in Hebrew.
+
+BUSINESS INFO:
+Name: {name}
+Category: {category}
+Address: {address}
+Phone: {phone}
+Google rating: {rating} ({review_count} reviews)
+Has website: {has_website}
+Website URL: {website_url}
+
+WEBSITE HTML (first 4000 chars, may be missing):
+---
+{html_snippet}
+---
+
+Your job:
+1. Score this business 1–10 as a LEAD for website-building services.
+   - 10 = perfect lead: no website OR very outdated / broken / non-responsive site, active business with real customers
+   - 5 = possible lead: has a decent but improvable site, might be convinced to redesign
+   - 1 = bad lead: already has a great modern site, OR inactive business, OR irrelevant
+2. Write a short explanation (2–3 sentences, Hebrew) of WHY this score — what's the opportunity, what are the red flags.
+
+Consider:
+- A business with NO website is almost always a 9–10 lead if it's an active real business
+- Outdated design clues: tables for layout, no mobile meta tag, Flash, dated fonts like Arial everywhere, no HTTPS, copyright year >2 years old
+- Few Google reviews + no website = strong lead
+- Modern React/Next/Wix sites with good design = weak lead (score 2–4)
+
+Respond in valid JSON only, no markdown fences:
+{{"score": <int 1-10>, "explanation": "<Hebrew text>"}}

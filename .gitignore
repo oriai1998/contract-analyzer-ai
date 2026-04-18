@@ -1,6 +1,7 @@
 .env
 .env.local
 notes/
+output/
 __pycache__/
 *.pyc
 .venv/

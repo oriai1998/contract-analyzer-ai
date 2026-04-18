@@ -1,0 +1,23 @@
+You are creating a detailed PROMPT that a web developer will feed to an AI code generator (like Claude, Lovable, v0, Bolt) to build a sample website for a specific Israeli business. The goal: produce a ready-to-use prompt that will generate a beautiful, appropriate Hebrew website for THIS business.
+
+BUSINESS:
+Name: {name}
+Category: {category}
+Address: {address}
+Phone: {phone}
+Google rating: {rating} ({review_count} reviews)
+Current website: {website_url}
+
+Produce a prompt (in Hebrew) that includes:
+
+1. **Goal** — one sentence: "בנה אתר תדמית ב-[language/stack suggestion] לעסק בשם X, שהוא Y באזור Z"
+2. **Style direction** — 2–3 adjectives tailored to the category (e.g., dental clinic → clean, trustworthy, calm; restaurant → warm, appetizing, inviting; auto shop → industrial, bold, efficient)
+3. **Color palette** — 3 specific hex colors appropriate to the category
+4. **Required sections** — bulleted list of 4–6 sections this business needs (Hero, About, Services/Menu, Gallery, Testimonials, Contact, etc.) — tailor to category
+5. **Category-specific features** — 2–3 features unique to this business type (e.g., restaurant: menu, reservation; clinic: appointment scheduling, insurance info; auto shop: quote form, service list)
+6. **Hebrew sample copy** — draft one Hero title and one Hero subtitle in Hebrew that a real customer would connect with for THIS specific business
+7. **Technical notes** — RTL layout, mobile-first, contact info integration ({phone})
+
+The prompt you produce will be copy-pasted into another AI tool, so it must be self-contained and specific to THIS business.
+
+Respond with ONLY the prompt text in Hebrew. No preamble, no explanation, no surrounding quotes.
